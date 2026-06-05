@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Open book glyph centred in the adaptive-icon safe zone. -->
+    <path
+        android:fillColor="#4F7CFF"
+        android:pathData="M54,38 C49,33 41,31 33,31 L30,31 C28.3,31 27,32.3 27,34 L27,72 C27,73.7 28.3,75 30,75 L34,75 C41,75 48,77 54,81 Z" />
+    <path
+        android:fillColor="#A5B4FC"
+        android:pathData="M54,38 C59,33 67,31 75,31 L78,31 C79.7,31 81,32.3 81,34 L81,72 C81,73.7 79.7,75 78,75 L74,75 C67,75 60,77 54,81 Z" />
+    <path
+        android:fillColor="#0A1020"
+        android:pathData="M53,38 L55,38 L55,81 L53,81 Z" />
+</vector>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Deep Navy background (default theme) — used for the window/splash so there
+         is no light flash before Compose draws. -->
+    <color name="window_background">#0A1020</color>
+    <color name="ic_launcher_background">#131A2E</color>
+</resources>

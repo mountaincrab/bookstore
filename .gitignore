@@ -1,0 +1,21 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+**/build/
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+google-services.json
+*.keystore
+*.jks
+
+# Kotlin
+*.class
+*.jar
+
+# Firebase emulator caches (when Firebase is switched on)
+.firebase/

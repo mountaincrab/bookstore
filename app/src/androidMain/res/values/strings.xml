@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Book Shelf</string>
+    <!--
+        Web OAuth 2.0 client ID for Credential Manager Google Sign-In. Only needed
+        once Firebase is switched on (see CLAUDE.md). Find it in Firebase Console →
+        Project Settings → your Android app → "Web client (auto created by Google
+        Service)". Leave the placeholder until then.
+    -->
+    <string name="google_web_client_id" translatable="false">REPLACE_WITH_WEB_CLIENT_ID</string>
+</resources>

@@ -1,0 +1,18 @@
+rules_version = '2';
+
+// Firestore security rules for Book Shelf.
+//
+// NOTE: Firebase is not wired into the app yet (see CLAUDE.md). These rules are
+// here ready to deploy once you switch Firebase on. Each user can only read and
+// write their own books under users/{uid}/books/**.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/books/{bookId} {
+      allow read, write: if isOwner(userId);
+    }
+  }
+}
