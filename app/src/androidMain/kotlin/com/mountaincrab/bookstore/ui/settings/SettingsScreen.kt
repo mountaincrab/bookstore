@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mountaincrab.bookstore.BuildConfig
 import com.mountaincrab.bookstore.ui.theme.AppTheme
 import com.mountaincrab.bookstore.ui.theme.LocalAppPalette
 import com.mountaincrab.bookstore.ui.theme.ThemeViewModel
@@ -104,6 +105,12 @@ fun SettingsScreen(themeViewModel: ThemeViewModel = koinViewModel()) {
                     color = palette.fgMuted,
                     fontSize = 13.sp,
                     modifier = Modifier.padding(top = 6.dp),
+                )
+                Text(
+                    "Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                    color = palette.fgMuted,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(top = 10.dp),
                 )
             }
         }
