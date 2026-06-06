@@ -2,15 +2,14 @@ package com.mountaincrab.bookstore.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.mountaincrab.bookstore.data.model.BookSource
 import com.mountaincrab.bookstore.data.model.SyncStatus
 import com.mountaincrab.bookstore.util.currentTimeMillis
 import com.mountaincrab.bookstore.util.randomUUID
 
 /**
- * A book on the shelf. Binary read model: [read] is the only status (the design
- * deliberately dropped reading/want-to-read lifecycle states). [readAt] records
- * when it was marked read so the Read screen's "Recent" grouping can sort by it.
+ * A book on the shelf. A book record exists only for books you've read, so there
+ * is no read/unread status. [readAt] is set when the book is recorded so the Read
+ * screen's "Recent" grouping can sort by it.
  */
 @Entity(tableName = "books")
 data class BookEntity(
@@ -18,8 +17,6 @@ data class BookEntity(
     val title: String,
     val author: String,
     val genres: List<String> = emptyList(),
-    val read: Boolean = false,
-    val source: BookSource = BookSource.BOUGHT,
     val notes: String = "",
     val readAt: Long? = null,
     val createdAt: Long = currentTimeMillis(),

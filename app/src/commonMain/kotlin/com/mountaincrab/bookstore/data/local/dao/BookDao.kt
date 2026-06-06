@@ -10,22 +10,15 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface BookDao {
-    /** Read books for the Home/Read screen. Newest-read first; UI re-groups. */
-    @Query("SELECT * FROM books WHERE read = 1 AND isDeleted = 0 ORDER BY COALESCE(readAt, updatedAt) DESC")
-    fun observeReadBooks(): Flow<List<BookEntity>>
-
-    /** Every book, for the Search screen. */
-    @Query("SELECT * FROM books WHERE isDeleted = 0 ORDER BY title COLLATE NOCASE")
-    fun observeAllBooks(): Flow<List<BookEntity>>
+    /** Books for the Home/Read screen. Newest-read first; UI re-groups. */
+    @Query("SELECT * FROM books WHERE isDeleted = 0 ORDER BY COALESCE(readAt, updatedAt) DESC")
+    fun observeBooks(): Flow<List<BookEntity>>
 
     @Query("SELECT * FROM books WHERE id = :id")
     suspend fun getById(id: String): BookEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(book: BookEntity)
-
-    @Query("UPDATE books SET read = :read, readAt = :readAt, updatedAt = :updatedAt, syncStatus = 'PENDING' WHERE id = :id")
-    suspend fun setRead(id: String, read: Boolean, readAt: Long?, updatedAt: Long = currentTimeMillis())
 
     @Query("UPDATE books SET isDeleted = 1, updatedAt = :updatedAt, syncStatus = 'PENDING' WHERE id = :id")
     suspend fun softDelete(id: String, updatedAt: Long = currentTimeMillis())

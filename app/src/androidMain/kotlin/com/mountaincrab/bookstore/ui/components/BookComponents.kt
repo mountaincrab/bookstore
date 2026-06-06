@@ -19,10 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.LocalLibrary
-import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -30,13 +26,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mountaincrab.bookstore.data.local.entity.BookEntity
-import com.mountaincrab.bookstore.data.model.BookSource
 import com.mountaincrab.bookstore.ui.theme.LocalAppPalette
 
 /** Two-letter author initials, e.g. "Ursula K. Le Guin" -> "UL". */
@@ -46,12 +40,6 @@ fun authorInitials(author: String): String {
     val first = parts.first().firstOrNull()?.uppercaseChar() ?: ""
     val last = if (parts.size > 1) parts.last().firstOrNull()?.uppercaseChar() ?: "" else ""
     return "$first$last".ifEmpty { "?" }
-}
-
-fun BookSource.icon(): ImageVector = when (this) {
-    BookSource.LIBRARY -> Icons.Filled.LocalLibrary
-    BookSource.BOUGHT -> Icons.Filled.ShoppingBag
-    BookSource.BORROWED -> Icons.Filled.People
 }
 
 /** Rounded square tile with the author's initials (BRow leading element). */
@@ -92,49 +80,6 @@ fun GenreChip(text: String) {
     }
 }
 
-@Composable
-fun SourceTag(source: BookSource) {
-    val palette = LocalAppPalette.current
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-        Icon(source.icon(), contentDescription = null, tint = palette.fgFaint, modifier = Modifier.size(13.dp))
-        Text(source.label, color = palette.fgFaint, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-    }
-}
-
-/** Tap-to-toggle: empty ring = unread, filled green check = read. */
-@Composable
-fun ReadToggle(read: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
-    val green = MaterialTheme.colorScheme.tertiary
-    Box(
-        modifier = modifier
-            .size(30.dp)
-            .background(if (read) green else androidx.compose.ui.graphics.Color.Transparent, CircleShape)
-            .border(2.dp, if (read) green else MaterialTheme.colorScheme.outline.copy(alpha = 0.8f), CircleShape)
-            .clickable { onToggle() },
-        contentAlignment = Alignment.Center,
-    ) {
-        if (read) {
-            Icon(Icons.Filled.Check, contentDescription = "Read", tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(17.dp))
-        }
-    }
-}
-
-/** Small "Read" pill shown next to a title in search results. */
-@Composable
-fun ReadBadge() {
-    val palette = LocalAppPalette.current
-    Surface(color = palette.successSoft, shape = CircleShape) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.padding(start = 7.dp, end = 9.dp, top = 3.dp, bottom = 3.dp),
-        ) {
-            Icon(Icons.Filled.Check, contentDescription = null, tint = palette.successText, modifier = Modifier.size(12.dp))
-            Text("Read", color = palette.successText, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-        }
-    }
-}
-
 /** A book row on the Read screen (the design's BRow): monogram, title, author, chips. */
 @Composable
 fun BookRow(book: BookEntity, onClick: () -> Unit) {
@@ -164,10 +109,11 @@ fun BookRow(book: BookEntity, onClick: () -> Unit) {
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(book.author, color = palette.fgMuted, fontSize = 12.5.sp, modifier = Modifier.padding(top = 1.dp))
-                Spacer(Modifier.height(7.dp))
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    book.genres.take(2).forEach { GenreChip(it) }
-                    SourceTag(book.source)
+                if (book.genres.isNotEmpty()) {
+                    Spacer(Modifier.height(7.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        book.genres.take(2).forEach { GenreChip(it) }
+                    }
                 }
             }
             Icon(

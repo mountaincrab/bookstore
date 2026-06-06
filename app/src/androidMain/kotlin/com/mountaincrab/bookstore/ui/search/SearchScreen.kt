@@ -14,12 +14,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -33,176 +34,193 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.mountaincrab.bookstore.data.local.entity.BookEntity
-import com.mountaincrab.bookstore.ui.components.ReadBadge
-import com.mountaincrab.bookstore.ui.components.ReadToggle
-import com.mountaincrab.bookstore.ui.components.SourceTag
+import com.mountaincrab.bookstore.data.remote.BookSearchResult
+import com.mountaincrab.bookstore.ui.components.CoverPlaceholder
 import com.mountaincrab.bookstore.ui.theme.LocalAppPalette
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun SearchScreen(
-    onOpenBook: (BookEntity) -> Unit,
-    onAddBook: () -> Unit,
+    onAddFromResult: (BookSearchResult) -> Unit,
+    onAddManual: () -> Unit,
     viewModel: SearchViewModel = koinViewModel(),
 ) {
     val palette = LocalAppPalette.current
-    val query by viewModel.query.collectAsStateWithLifecycle()
-    val results by viewModel.results.collectAsStateWithLifecycle()
-    val readCount = results.count { it.read }
+    val title by viewModel.title.collectAsStateWithLifecycle()
+    val author by viewModel.author.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Search bar + add button
-        Surface(color = MaterialTheme.colorScheme.surface) {
-            Row(
+        // Header
+        Column(modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 8.dp)) {
+            Text("Search", color = MaterialTheme.colorScheme.onSurface, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold)
+            Text(
+                "Find a book on Open Library to add to your shelf",
+                color = palette.fgMuted,
+                fontSize = 13.sp,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
+
+        // Title + Author fields
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            SearchField(
+                value = title,
+                onValue = viewModel::onTitleChange,
+                placeholder = "Title",
+                imeAction = ImeAction.Next,
+                onSearch = viewModel::search,
+            )
+            SearchField(
+                value = author,
+                onValue = viewModel::onAuthorChange,
+                placeholder = "Author",
+                imeAction = ImeAction.Search,
+                onSearch = viewModel::search,
+            )
+            Surface(
+                color = if (viewModel.canSearch) MaterialTheme.colorScheme.primary else palette.surfaceHigh,
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    .clickable(enabled = viewModel.canSearch) { viewModel.search() },
             ) {
                 Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .background(palette.surfaceHigh, CircleShape)
-                        .border(1.dp, palette.cardBorder, CircleShape)
-                        .padding(horizontal = 16.dp, vertical = 11.dp),
+                    modifier = Modifier.padding(vertical = 13.dp),
+                    horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Icon(Icons.Filled.Search, contentDescription = null, tint = palette.fgMuted, modifier = Modifier.size(18.dp))
-                    Box(modifier = Modifier.weight(1f)) {
-                        if (query.isEmpty()) {
-                            Text("Search every book", color = palette.fgMuted, fontSize = 15.sp)
-                        }
-                        BasicTextField(
-                            value = query,
-                            onValueChange = viewModel::onQueryChange,
-                            singleLine = true,
-                            textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp),
-                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                    if (query.isNotEmpty()) {
-                        Icon(
-                            Icons.Filled.Close,
-                            contentDescription = "Clear",
-                            tint = palette.fgFaint,
-                            modifier = Modifier.size(17.dp).clickable { viewModel.onQueryChange("") },
-                        )
-                    }
-                }
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
-                        .clickable { onAddBook() },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = "Add a book", tint = Color.White, modifier = Modifier.size(22.dp))
-                }
-            }
-        }
-
-        // Count line
-        Row(
-            modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 13.dp, bottom = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text("${results.size} ${if (results.size == 1) "book" else "books"}", color = palette.fgFaint, fontSize = 12.sp)
-            if (readCount > 0) {
-                Text("$readCount read", color = palette.successText, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-            }
-        }
-
-        if (results.isEmpty()) {
-            EmptySearch(query, onAddBook)
-        } else {
-            LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 2.dp, bottom = 24.dp)) {
-                items(results, key = { it.id }) { book ->
-                    SearchRow(
-                        book = book,
-                        onOpen = { onOpenBook(book) },
-                        onToggle = { viewModel.setRead(book.id, !book.read) },
+                    Icon(
+                        Icons.Filled.Search,
+                        contentDescription = null,
+                        tint = if (viewModel.canSearch) Color.White else palette.fgMuted,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Text(
+                        "Search",
+                        color = if (viewModel.canSearch) Color.White else palette.fgMuted,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(start = 8.dp),
                     )
                 }
             }
         }
+
+        // Results / states
+        Box(modifier = Modifier.fillMaxSize()) {
+            when {
+                state.loading -> Hint("Searching…")
+                state.error != null -> Hint(state.error!!)
+                !state.searched -> Hint("Enter a title or author, then tap Search.")
+                state.results.isEmpty() -> NoMatches(onAddManual)
+                else -> LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 4.dp, bottom = 24.dp)) {
+                    items(state.results) { r -> ResultRow(r, onClick = { onAddFromResult(r) }) }
+                }
+            }
+        }
     }
 }
 
 @Composable
-private fun SearchRow(book: BookEntity, onOpen: () -> Unit, onToggle: () -> Unit) {
+private fun SearchField(
+    value: String,
+    onValue: (String) -> Unit,
+    placeholder: String,
+    imeAction: ImeAction,
+    onSearch: () -> Unit,
+) {
     val palette = LocalAppPalette.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onOpen() }
-            .padding(horizontal = 8.dp, vertical = 13.dp),
+            .background(palette.surfaceHigh, RoundedCornerShape(12.dp))
+            .border(1.dp, palette.cardBorder, RoundedCornerShape(12.dp))
+            .padding(horizontal = 14.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    book.title,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                if (book.read) ReadBadge()
-            }
-            Text(book.author, color = palette.fgMuted, fontSize = 12.5.sp, modifier = Modifier.padding(top = 2.dp))
-            Row(
-                modifier = Modifier.padding(top = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                book.genres.firstOrNull()?.let { Text(it, color = palette.fgFaint, fontSize = 11.5.sp) }
-                SourceTag(book.source)
-            }
+        Box(modifier = Modifier.weight(1f)) {
+            if (value.isEmpty()) Text(placeholder, color = palette.fgMuted, fontSize = 15.sp)
+            BasicTextField(
+                value = value,
+                onValueChange = onValue,
+                singleLine = true,
+                textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                keyboardOptions = KeyboardOptions(imeAction = imeAction),
+                keyboardActions = KeyboardActions(onSearch = { onSearch() }),
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
-        ReadToggle(read = book.read, onToggle = onToggle)
     }
 }
 
 @Composable
-private fun EmptySearch(query: String, onAddBook: () -> Unit) {
+private fun ResultRow(r: BookSearchResult, onClick: () -> Unit) {
+    val palette = LocalAppPalette.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = 8.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        CoverPlaceholder()
+        Column(modifier = Modifier.weight(1f)) {
+            Text(r.title, color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                r.author + (r.year?.let { " · $it" } ?: ""),
+                color = palette.fgMuted,
+                fontSize = 12.5.sp,
+            )
+        }
+        Icon(Icons.Filled.Add, contentDescription = "Add", tint = palette.accentText, modifier = Modifier.size(18.dp))
+    }
+}
+
+@Composable
+private fun Hint(text: String) {
     val palette = LocalAppPalette.current
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(40.dp),
+        modifier = Modifier.fillMaxSize().padding(40.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Icon(Icons.Filled.Search, contentDescription = null, tint = palette.fgFaint, modifier = Modifier.size(26.dp))
-        Text(
-            if (query.isBlank()) "Your shelf is empty." else "No books match \"$query\".",
-            color = palette.fgFaint,
-            fontSize = 14.sp,
-            modifier = Modifier.padding(vertical = 12.dp),
-        )
+        Text(text, color = palette.fgFaint, fontSize = 14.sp, modifier = Modifier.padding(top = 12.dp))
+    }
+}
+
+@Composable
+private fun NoMatches(onAddManual: () -> Unit) {
+    val palette = LocalAppPalette.current
+    Column(
+        modifier = Modifier.fillMaxSize().padding(40.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text("No matches found.", color = palette.fgFaint, fontSize = 14.sp)
         Surface(
             color = palette.surfaceHigh,
             shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.clickable { onAddBook() },
+            modifier = Modifier.padding(top = 14.dp).clickable { onAddManual() },
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 18.dp, vertical = 11.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Icon(Icons.Filled.Add, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(15.dp))
-                Text("Add a book", color = MaterialTheme.colorScheme.onSurface, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold)
+                Icon(Icons.Filled.Edit, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(15.dp))
+                Text("Add it manually", color = MaterialTheme.colorScheme.onSurface, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }

@@ -8,7 +8,7 @@ import com.mountaincrab.bookstore.data.local.entity.BookEntity
 
 @Database(
     entities = [BookEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
