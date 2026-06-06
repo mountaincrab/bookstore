@@ -2,6 +2,7 @@ package com.mountaincrab.bookstore.data.repository
 
 import com.mountaincrab.bookstore.data.remote.BookSearchResult
 import com.mountaincrab.bookstore.data.remote.BookSearchService
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -11,6 +12,12 @@ class BookSearchRepository(
 ) {
     suspend fun search(query: String): Result<List<BookSearchResult>> =
         withContext(Dispatchers.IO) {
-            runCatching { service.search(query) }
+            try {
+                Result.success(service.search(query))
+            } catch (e: CancellationException) {
+                throw e  // let coroutine cancellation propagate normally
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
         }
 }

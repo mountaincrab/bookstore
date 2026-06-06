@@ -37,6 +37,9 @@ class AddEditBookViewModel(
             _onlineSearch.value = OnlineSearchState()
             return
         }
+        // Clear a stale error immediately so it doesn't linger while the user keeps typing.
+        // Preserve results so the list doesn't flicker during the debounce window.
+        if (_onlineSearch.value.error != null) _onlineSearch.value = OnlineSearchState()
         searchJob = viewModelScope.launch {
             delay(350) // debounce
             _onlineSearch.value = OnlineSearchState(loading = true)
