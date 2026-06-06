@@ -41,7 +41,7 @@ class AddEditBookViewModel(
         // Preserve results so the list doesn't flicker during the debounce window.
         if (_onlineSearch.value.error != null) _onlineSearch.value = OnlineSearchState()
         searchJob = viewModelScope.launch {
-            delay(350) // debounce
+            delay(500) // debounce
             _onlineSearch.value = OnlineSearchState(loading = true)
             val result = searchRepository.search(query)
             _onlineSearch.value = result.fold(
