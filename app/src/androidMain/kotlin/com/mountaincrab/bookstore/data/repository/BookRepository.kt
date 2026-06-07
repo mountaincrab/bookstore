@@ -26,10 +26,14 @@ class BookRepository(
         genres: List<String>,
         notes: String,
     ): BookEntity {
+        val effectiveAuthor = author.trim().ifEmpty { "Unknown" }
+        val existing = bookDao.findByTitleAndAuthor(title.trim(), effectiveAuthor)
+        if (existing != null) return existing
+
         val now = currentTimeMillis()
         val book = BookEntity(
             title = title.trim(),
-            author = author.trim().ifEmpty { "Unknown" },
+            author = effectiveAuthor,
             genres = genres.map { it.trim() }.filter { it.isNotEmpty() },
             notes = notes.trim(),
             readAt = now,
