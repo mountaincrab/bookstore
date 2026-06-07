@@ -42,4 +42,16 @@ val MIGRATION_1_2 = Migration(1, 2) { connection ->
     connection.execSQL("ALTER TABLE `books_new` RENAME TO `books`")
 }
 
-val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2)
+/**
+ * v2 → v3: add the nullable [isbn] column (normalised ISBN-13) and a unique index on
+ * it. SQLite treats each NULL as distinct, so multiple rows can have isbn = NULL while
+ * the index still blocks two rows with the same non-null ISBN.
+ */
+val MIGRATION_2_3 = Migration(2, 3) { connection ->
+    connection.execSQL("ALTER TABLE `books` ADD COLUMN `isbn` TEXT DEFAULT NULL")
+    connection.execSQL(
+        "CREATE UNIQUE INDEX IF NOT EXISTS `index_books_isbn` ON `books` (`isbn`)"
+    )
+}
+
+val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)

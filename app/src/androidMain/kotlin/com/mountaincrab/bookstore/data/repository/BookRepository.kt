@@ -6,6 +6,11 @@ import com.mountaincrab.bookstore.data.model.SyncStatus
 import com.mountaincrab.bookstore.util.currentTimeMillis
 import kotlinx.coroutines.flow.Flow
 
+sealed class AddBookResult {
+    data class Added(val book: BookEntity) : AddBookResult()
+    data class AlreadyRead(val book: BookEntity) : AddBookResult()
+}
+
 /**
  * Local-only book store backed by Room. Every mutation marks the row
  * `syncStatus = PENDING` so it is ready to push the moment Firebase is switched
@@ -20,15 +25,30 @@ class BookRepository(
 
     suspend fun getById(id: String): BookEntity? = bookDao.getById(id)
 
+    /**
+     * Add a book to the shelf. Returns [AddBookResult.AlreadyRead] (without inserting)
+     * if a non-deleted record with the same ISBN (preferred) or the same title+author
+     * already exists. Returns [AddBookResult.Added] on a successful insert.
+     */
     suspend fun addBook(
         title: String,
         author: String,
         genres: List<String>,
         notes: String,
-    ): BookEntity {
+        isbn: String? = null,
+    ): AddBookResult {
         val effectiveAuthor = author.trim().ifEmpty { "Unknown" }
-        val existing = bookDao.findByTitleAndAuthor(title.trim(), effectiveAuthor)
-        if (existing != null) return existing
+
+        // ISBN check first — exact, reliable, index-backed.
+        if (isbn != null) {
+            val byIsbn = bookDao.findByIsbn(isbn)
+            if (byIsbn != null) return AddBookResult.AlreadyRead(byIsbn)
+        }
+
+        // Fall back to case-insensitive title+author matching for manual entries
+        // or results without an ISBN.
+        val byTitleAuthor = bookDao.findByTitleAndAuthor(title.trim(), effectiveAuthor)
+        if (byTitleAuthor != null) return AddBookResult.AlreadyRead(byTitleAuthor)
 
         val now = currentTimeMillis()
         val book = BookEntity(
@@ -36,13 +56,14 @@ class BookRepository(
             author = effectiveAuthor,
             genres = genres.map { it.trim() }.filter { it.isNotEmpty() },
             notes = notes.trim(),
+            isbn = isbn,
             readAt = now,
             createdAt = now,
             updatedAt = now,
             syncStatus = SyncStatus.PENDING,
         )
         bookDao.upsert(book)
-        return book
+        return AddBookResult.Added(book)
     }
 
     suspend fun updateBook(book: BookEntity) {
