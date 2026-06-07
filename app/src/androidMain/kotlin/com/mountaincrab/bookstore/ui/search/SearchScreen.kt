@@ -8,18 +8,23 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
@@ -39,6 +44,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mountaincrab.bookstore.data.local.entity.BookEntity
 import com.mountaincrab.bookstore.data.remote.BookSearchResult
 import com.mountaincrab.bookstore.ui.components.CoverPlaceholder
 import com.mountaincrab.bookstore.ui.theme.LocalAppPalette
@@ -54,6 +60,7 @@ fun SearchScreen(
     val title by viewModel.title.collectAsStateWithLifecycle()
     val author by viewModel.author.collectAsStateWithLifecycle()
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val readBooks by viewModel.readBooks.collectAsStateWithLifecycle()
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Header
@@ -113,6 +120,30 @@ fun SearchScreen(
                     )
                 }
             }
+
+            if (state.searched) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { viewModel.clear() }
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        Icons.Filled.Close,
+                        contentDescription = null,
+                        tint = palette.fgMuted,
+                        modifier = Modifier.size(13.dp),
+                    )
+                    Text(
+                        "Clear results",
+                        color = palette.fgMuted,
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(start = 5.dp),
+                    )
+                }
+            }
         }
 
         // Results / states
@@ -123,12 +154,24 @@ fun SearchScreen(
                 !state.searched -> Hint("Enter a title or author, then tap Search.")
                 state.results.isEmpty() -> NoMatches(onAddManual)
                 else -> LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 4.dp, bottom = 24.dp)) {
-                    items(state.results) { r -> ResultRow(r, onClick = { onAddFromResult(r) }) }
+                    items(state.results) { r ->
+                        ResultRow(
+                            r = r,
+                            isRead = readBooks.isAlreadyRead(r),
+                            onClick = { onAddFromResult(r) },
+                        )
+                    }
                 }
             }
         }
     }
 }
+
+private fun List<BookEntity>.isAlreadyRead(result: BookSearchResult): Boolean =
+    any {
+        it.title.trim().equals(result.title.trim(), ignoreCase = true) &&
+            it.author.trim().equals(result.author.trim(), ignoreCase = true)
+    }
 
 @Composable
 private fun SearchField(
@@ -164,7 +207,7 @@ private fun SearchField(
 }
 
 @Composable
-private fun ResultRow(r: BookSearchResult, onClick: () -> Unit) {
+private fun ResultRow(r: BookSearchResult, isRead: Boolean, onClick: () -> Unit) {
     val palette = LocalAppPalette.current
     Row(
         modifier = Modifier
@@ -182,8 +225,38 @@ private fun ResultRow(r: BookSearchResult, onClick: () -> Unit) {
                 color = palette.fgMuted,
                 fontSize = 12.5.sp,
             )
+            if (isRead) {
+                Spacer(Modifier.height(4.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                    shape = CircleShape,
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    ) {
+                        Icon(
+                            Icons.Filled.Check,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(10.dp),
+                        )
+                        Text(
+                            "On your shelf",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
+            }
         }
-        Icon(Icons.Filled.Add, contentDescription = "Add", tint = palette.accentText, modifier = Modifier.size(18.dp))
+        if (isRead) {
+            Icon(Icons.Filled.Check, contentDescription = "On your shelf", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+        } else {
+            Icon(Icons.Filled.Add, contentDescription = "Add", tint = palette.accentText, modifier = Modifier.size(18.dp))
+        }
     }
 }
 

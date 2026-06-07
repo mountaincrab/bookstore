@@ -17,6 +17,12 @@ interface BookDao {
     @Query("SELECT * FROM books WHERE id = :id")
     suspend fun getById(id: String): BookEntity?
 
+    @Query("SELECT * FROM books WHERE isDeleted = 0 AND isbn = :isbn LIMIT 1")
+    suspend fun findByIsbn(isbn: String): BookEntity?
+
+    @Query("SELECT * FROM books WHERE isDeleted = 0 AND title = :title COLLATE NOCASE AND author = :author COLLATE NOCASE LIMIT 1")
+    suspend fun findByTitleAndAuthor(title: String, author: String): BookEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(book: BookEntity)
 

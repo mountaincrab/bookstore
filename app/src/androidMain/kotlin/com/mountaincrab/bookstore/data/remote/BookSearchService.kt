@@ -1,5 +1,6 @@
 package com.mountaincrab.bookstore.data.remote
 
+import com.mountaincrab.bookstore.util.normaliseIsbn
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -13,6 +14,8 @@ data class BookSearchResult(
     val author: String,
     val year: Int?,
     val genres: List<String>,
+    /** Normalised ISBN-13, or null if the Open Library record has none. */
+    val isbn: String? = null,
 )
 
 @Serializable
@@ -26,6 +29,7 @@ private data class OpenLibraryDoc(
     @SerialName("author_name") val authorName: List<String> = emptyList(),
     @SerialName("first_publish_year") val firstPublishYear: Int? = null,
     val subject: List<String> = emptyList(),
+    val isbn: List<String> = emptyList(),
 )
 
 /**
@@ -54,7 +58,7 @@ class BookSearchService(
         val response: OpenLibraryResponse = client.get("https://openlibrary.org/search.json") {
             params()
             parameter("limit", 20)
-            parameter("fields", "title,author_name,first_publish_year,subject")
+            parameter("fields", "title,author_name,first_publish_year,subject,isbn")
         }.body()
         return response.docs
             .filter { !it.title.isNullOrBlank() }
@@ -65,6 +69,8 @@ class BookSearchService(
                     year = doc.firstPublishYear,
                     // Open Library subjects are noisy; take the first couple as genres.
                     genres = doc.subject.take(2),
+                    // Prefer ISBN-13 over ISBN-10; normaliseIsbn converts either to ISBN-13.
+                    isbn = doc.isbn.firstNotNullOfOrNull { normaliseIsbn(it) },
                 )
             }
     }

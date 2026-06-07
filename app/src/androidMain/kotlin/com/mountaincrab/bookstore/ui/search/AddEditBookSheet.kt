@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -23,6 +24,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,6 +46,10 @@ import com.mountaincrab.bookstore.ui.theme.LocalAppPalette
  *  - blank manual add (`existing` and `seed` both null),
  *  - add pre-filled from an online search result (`seed` set), and
  *  - edit an existing book (`existing` set).
+ *
+ * Dismissal is driven by [AddEditEvent] from the ViewModel so that the sheet
+ * can intercept [AddEditEvent.AlreadyRead] and show an inline message instead
+ * of closing silently.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,6 +69,17 @@ fun AddEditBookSheet(
         mutableStateOf((existing?.genres ?: seed?.genres ?: emptyList()).joinToString(", "))
     }
     var notes by remember { mutableStateOf(existing?.notes ?: "") }
+    var alreadyRead by remember { mutableStateOf(false) }
+
+    // Dismiss on save; show inline notice on duplicate.
+    LaunchedEffect(viewModel) {
+        viewModel.event.collect { event ->
+            when (event) {
+                AddEditEvent.Saved -> onDismiss()
+                AddEditEvent.AlreadyRead -> alreadyRead = true
+            }
+        }
+    }
 
     fun save() {
         if (title.isBlank()) return
@@ -77,9 +94,8 @@ fun AddEditBookSheet(
                 )
             )
         } else {
-            viewModel.addBook(title, author, genreList, notes)
+            viewModel.addBook(title, author, genreList, notes, seed?.isbn)
         }
-        onDismiss()
     }
 
     ModalBottomSheet(
@@ -117,14 +133,42 @@ fun AddEditBookSheet(
                 LabeledField("GENRES") { FormInput(genres, { genres = it }, "Fiction, Sci-fi…") }
                 LabeledField("NOTES") { FormInput(notes, { notes = it }, "What did you think?", minLines = 3) }
 
+                // Inline duplicate notice — shown instead of silently swallowing the add.
+                if (alreadyRead) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Icon(
+                                Icons.Filled.Check,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(15.dp),
+                            )
+                            Text(
+                                "Already on your shelf!",
+                                color = MaterialTheme.colorScheme.primary,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+                }
+
                 Surface(
-                    color = MaterialTheme.colorScheme.primary,
+                    color = if (!alreadyRead) MaterialTheme.colorScheme.primary else palette.surfaceHigh,
                     shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth().clickable { save() },
+                    modifier = Modifier.fillMaxWidth().clickable(enabled = !alreadyRead) { save() },
                 ) {
                     Text(
                         if (isEdit) "Save changes" else "Add to shelf",
-                        color = Color.White,
+                        color = if (!alreadyRead) Color.White else palette.fgMuted,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(vertical = 13.dp).fillMaxWidth(),

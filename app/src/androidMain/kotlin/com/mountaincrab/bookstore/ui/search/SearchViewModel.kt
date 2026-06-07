@@ -2,11 +2,15 @@ package com.mountaincrab.bookstore.ui.search
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mountaincrab.bookstore.data.local.entity.BookEntity
 import com.mountaincrab.bookstore.data.remote.BookSearchResult
+import com.mountaincrab.bookstore.data.repository.BookRepository
 import com.mountaincrab.bookstore.data.repository.BookSearchRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /** State of the online (Open Library) lookup on the Search screen. */
@@ -24,6 +28,7 @@ data class OnlineSearchState(
  */
 class SearchViewModel(
     private val searchRepository: BookSearchRepository,
+    private val bookRepository: BookRepository,
 ) : ViewModel() {
 
     private val _title = MutableStateFlow("")
@@ -34,6 +39,10 @@ class SearchViewModel(
 
     private val _state = MutableStateFlow(OnlineSearchState())
     val state: StateFlow<OnlineSearchState> = _state
+
+    /** Local shelf — used to mark already-read books in search results. */
+    val readBooks: StateFlow<List<BookEntity>> = bookRepository.observeBooks()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private var searchJob: Job? = null
 
@@ -54,5 +63,12 @@ class SearchViewModel(
                 onFailure = { OnlineSearchState(error = "Couldn't reach Open Library. Try again.", searched = true) },
             )
         }
+    }
+
+    fun clear() {
+        searchJob?.cancel()
+        _title.value = ""
+        _author.value = ""
+        _state.value = OnlineSearchState()
     }
 }

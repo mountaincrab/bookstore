@@ -62,7 +62,7 @@ val appModule = module {
 
     // ViewModels
     viewModel { ReadViewModel(bookRepository = get()) }
-    viewModel { SearchViewModel(searchRepository = get()) }
+    viewModel { SearchViewModel(searchRepository = get(), bookRepository = get()) }
     viewModel { AddEditBookViewModel(bookRepository = get()) }
     viewModel { ThemeViewModel(prefs = get()) }
 }
