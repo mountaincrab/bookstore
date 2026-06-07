@@ -2,7 +2,6 @@ package com.mountaincrab.bookstore.data.repository
 
 import com.mountaincrab.bookstore.data.local.dao.BookDao
 import com.mountaincrab.bookstore.data.local.entity.BookEntity
-import com.mountaincrab.bookstore.data.model.BookSource
 import com.mountaincrab.bookstore.data.model.SyncStatus
 import com.mountaincrab.bookstore.util.currentTimeMillis
 import kotlinx.coroutines.flow.Flow
@@ -17,9 +16,7 @@ import kotlinx.coroutines.flow.Flow
 class BookRepository(
     private val bookDao: BookDao,
 ) {
-    fun observeReadBooks(): Flow<List<BookEntity>> = bookDao.observeReadBooks()
-
-    fun observeAllBooks(): Flow<List<BookEntity>> = bookDao.observeAllBooks()
+    fun observeBooks(): Flow<List<BookEntity>> = bookDao.observeBooks()
 
     suspend fun getById(id: String): BookEntity? = bookDao.getById(id)
 
@@ -27,8 +24,6 @@ class BookRepository(
         title: String,
         author: String,
         genres: List<String>,
-        read: Boolean,
-        source: BookSource,
         notes: String,
     ): BookEntity {
         val now = currentTimeMillis()
@@ -36,10 +31,8 @@ class BookRepository(
             title = title.trim(),
             author = author.trim().ifEmpty { "Unknown" },
             genres = genres.map { it.trim() }.filter { it.isNotEmpty() },
-            read = read,
-            source = source,
             notes = notes.trim(),
-            readAt = if (read) now else null,
+            readAt = now,
             createdAt = now,
             updatedAt = now,
             syncStatus = SyncStatus.PENDING,
@@ -52,10 +45,6 @@ class BookRepository(
         bookDao.upsert(
             book.copy(updatedAt = currentTimeMillis(), syncStatus = SyncStatus.PENDING)
         )
-    }
-
-    suspend fun setRead(id: String, read: Boolean) {
-        bookDao.setRead(id, read, readAt = if (read) currentTimeMillis() else null)
     }
 
     suspend fun deleteBook(id: String) {

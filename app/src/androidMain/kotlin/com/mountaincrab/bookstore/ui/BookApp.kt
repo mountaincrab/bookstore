@@ -11,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.mountaincrab.bookstore.data.local.entity.BookEntity
+import com.mountaincrab.bookstore.data.remote.BookSearchResult
 import com.mountaincrab.bookstore.ui.components.BookDetailSheet
 import com.mountaincrab.bookstore.ui.components.BottomTabBar
 import com.mountaincrab.bookstore.ui.components.BookTab
@@ -33,6 +34,7 @@ fun BookApp() {
     var detailBook by remember { mutableStateOf<BookEntity?>(null) }
     var addEditOpen by remember { mutableStateOf(false) }
     var editingBook by remember { mutableStateOf<BookEntity?>(null) }
+    var seedResult by remember { mutableStateOf<BookSearchResult?>(null) }
 
     // Shared VM for add/edit/delete/toggle from the sheets.
     val addEditViewModel: AddEditBookViewModel = koinViewModel()
@@ -44,11 +46,11 @@ fun BookApp() {
             when (tab) {
                 BookTab.READ -> ReadScreen(
                     onOpenBook = { detailBook = it },
-                    onAddBook = { editingBook = null; addEditOpen = true },
+                    onAddBook = { editingBook = null; seedResult = null; addEditOpen = true },
                 )
                 BookTab.SEARCH -> SearchScreen(
-                    onOpenBook = { detailBook = it },
-                    onAddBook = { editingBook = null; addEditOpen = true },
+                    onAddFromResult = { editingBook = null; seedResult = it; addEditOpen = true },
+                    onAddManual = { editingBook = null; seedResult = null; addEditOpen = true },
                 )
                 BookTab.SETTINGS -> SettingsScreen()
             }
@@ -59,13 +61,9 @@ fun BookApp() {
         BookDetailSheet(
             book = book,
             onDismiss = { detailBook = null },
-            onToggleRead = {
-                addEditViewModel.setRead(book.id, !book.read)
-                // Reflect the change in the open sheet immediately.
-                detailBook = book.copy(read = !book.read)
-            },
             onEdit = {
                 editingBook = book
+                seedResult = null
                 detailBook = null
                 addEditOpen = true
             },
@@ -75,7 +73,8 @@ fun BookApp() {
     if (addEditOpen) {
         AddEditBookSheet(
             existing = editingBook,
-            onDismiss = { addEditOpen = false; editingBook = null },
+            seed = seedResult,
+            onDismiss = { addEditOpen = false; editingBook = null; seedResult = null },
             viewModel = addEditViewModel,
         )
     }

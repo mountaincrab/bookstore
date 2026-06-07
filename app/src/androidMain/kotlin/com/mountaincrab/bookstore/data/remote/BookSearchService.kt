@@ -36,10 +36,23 @@ private data class OpenLibraryDoc(
 class BookSearchService(
     private val client: HttpClient,
 ) {
-    suspend fun search(query: String): List<BookSearchResult> {
-        if (query.isBlank()) return emptyList()
+    /**
+     * Search by title and/or author as separate fields. At least one must be
+     * non-blank; blank fields are omitted from the query.
+     */
+    suspend fun search(title: String, author: String): List<BookSearchResult> {
+        if (title.isBlank() && author.isBlank()) return emptyList()
+        return request {
+            if (title.isNotBlank()) parameter("title", title.trim())
+            if (author.isNotBlank()) parameter("author", author.trim())
+        }
+    }
+
+    private suspend fun request(
+        params: io.ktor.client.request.HttpRequestBuilder.() -> Unit,
+    ): List<BookSearchResult> {
         val response: OpenLibraryResponse = client.get("https://openlibrary.org/search.json") {
-            parameter("q", query)
+            params()
             parameter("limit", 20)
             parameter("fields", "title,author_name,first_publish_year,subject")
         }.body()

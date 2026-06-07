@@ -3,71 +3,21 @@ package com.mountaincrab.bookstore.ui.search
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mountaincrab.bookstore.data.local.entity.BookEntity
-import com.mountaincrab.bookstore.data.model.BookSource
-import com.mountaincrab.bookstore.data.remote.BookSearchResult
 import com.mountaincrab.bookstore.data.repository.BookRepository
-import com.mountaincrab.bookstore.data.repository.BookSearchRepository
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-
-/** State of the online (Open Library) search inside the Add sheet. */
-data class OnlineSearchState(
-    val loading: Boolean = false,
-    val results: List<BookSearchResult> = emptyList(),
-    val error: String? = null,
-)
 
 class AddEditBookViewModel(
     private val bookRepository: BookRepository,
-    private val searchRepository: BookSearchRepository,
 ) : ViewModel() {
 
-    private val _onlineSearch = MutableStateFlow(OnlineSearchState())
-    val onlineSearch: StateFlow<OnlineSearchState> = _onlineSearch
-
-    private var searchJob: Job? = null
-
-    /** Debounced online search against Open Library. */
-    fun searchOnline(query: String) {
-        searchJob?.cancel()
-        if (query.isBlank()) {
-            _onlineSearch.value = OnlineSearchState()
-            return
-        }
-        // Clear a stale error immediately so it doesn't linger while the user keeps typing.
-        // Preserve results so the list doesn't flicker during the debounce window.
-        if (_onlineSearch.value.error != null) _onlineSearch.value = OnlineSearchState()
-        searchJob = viewModelScope.launch {
-            delay(500) // debounce
-            _onlineSearch.value = OnlineSearchState(loading = true)
-            val result = searchRepository.search(query)
-            _onlineSearch.value = result.fold(
-                onSuccess = { OnlineSearchState(results = it) },
-                onFailure = { OnlineSearchState(error = "Couldn't reach Open Library. Add it manually below.") },
-            )
-        }
-    }
-
-    fun resetSearch() {
-        searchJob?.cancel()
-        _onlineSearch.value = OnlineSearchState()
-    }
-
-    fun addBook(title: String, author: String, genres: List<String>, read: Boolean, source: BookSource, notes: String) {
+    fun addBook(title: String, author: String, genres: List<String>, notes: String) {
         viewModelScope.launch {
-            bookRepository.addBook(title, author, genres, read, source, notes)
+            bookRepository.addBook(title, author, genres, notes)
         }
     }
 
     fun updateBook(book: BookEntity) {
         viewModelScope.launch { bookRepository.updateBook(book) }
-    }
-
-    fun setRead(id: String, read: Boolean) {
-        viewModelScope.launch { bookRepository.setRead(id, read) }
     }
 
     fun deleteBook(id: String) {

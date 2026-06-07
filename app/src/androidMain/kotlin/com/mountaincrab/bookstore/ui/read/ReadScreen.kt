@@ -161,7 +161,7 @@ private fun EmptyRead(onAddBook: () -> Unit) {
     ) {
         Text("No books read yet", color = MaterialTheme.colorScheme.onSurface, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         Text(
-            "Add a book and mark it read, or mark one read from Search.",
+            "Search for a book or add one with the + button to start your shelf.",
             color = palette.fgMuted,
             fontSize = 13.sp,
             modifier = Modifier.padding(top = 8.dp),

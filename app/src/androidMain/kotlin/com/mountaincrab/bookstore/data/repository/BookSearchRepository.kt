@@ -10,10 +10,10 @@ import kotlinx.coroutines.withContext
 class BookSearchRepository(
     private val service: BookSearchService,
 ) {
-    suspend fun search(query: String): Result<List<BookSearchResult>> =
+    suspend fun search(title: String, author: String): Result<List<BookSearchResult>> =
         withContext(Dispatchers.IO) {
             try {
-                Result.success(service.search(query))
+                Result.success(service.search(title, author))
             } catch (e: CancellationException) {
                 throw e  // let coroutine cancellation propagate normally
             } catch (e: Exception) {
