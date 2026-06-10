@@ -5,10 +5,12 @@ import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.mountaincrab.bookstore.data.local.ALL_MIGRATIONS
 import com.mountaincrab.bookstore.data.local.AppDatabase
 import com.mountaincrab.bookstore.data.remote.BookSearchService
+import com.mountaincrab.bookstore.data.repository.BackupRepository
 import com.mountaincrab.bookstore.data.repository.BookRepository
 import com.mountaincrab.bookstore.data.repository.BookSearchRepository
 import com.mountaincrab.bookstore.preferences.UserPreferencesRepository
 import com.mountaincrab.bookstore.ui.read.ReadViewModel
+import com.mountaincrab.bookstore.ui.settings.BackupViewModel
 import com.mountaincrab.bookstore.ui.search.AddEditBookViewModel
 import com.mountaincrab.bookstore.ui.search.SearchViewModel
 import com.mountaincrab.bookstore.ui.theme.ThemeViewModel
@@ -59,10 +61,12 @@ val appModule = module {
     // Repositories
     single { BookRepository(bookDao = get()) }
     single { BookSearchRepository(service = get()) }
+    single { BackupRepository(bookDao = get(), context = androidContext()) }
 
     // ViewModels
     viewModel { ReadViewModel(bookRepository = get()) }
     viewModel { SearchViewModel(bookRepository = get()) }
     viewModel { AddEditBookViewModel(bookRepository = get(), searchRepository = get()) }
     viewModel { ThemeViewModel(prefs = get()) }
+    viewModel { BackupViewModel(backupRepository = get()) }
 }
