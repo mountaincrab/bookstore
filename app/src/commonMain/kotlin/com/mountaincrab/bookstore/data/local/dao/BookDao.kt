@@ -14,6 +14,10 @@ interface BookDao {
     @Query("SELECT * FROM books WHERE isDeleted = 0 ORDER BY COALESCE(readAt, updatedAt) DESC")
     fun observeBooks(): Flow<List<BookEntity>>
 
+    /** One-shot snapshot of every live book, for exporting a backup. */
+    @Query("SELECT * FROM books WHERE isDeleted = 0 ORDER BY title COLLATE NOCASE")
+    suspend fun getAllBooks(): List<BookEntity>
+
     @Query("SELECT * FROM books WHERE id = :id")
     suspend fun getById(id: String): BookEntity?
 

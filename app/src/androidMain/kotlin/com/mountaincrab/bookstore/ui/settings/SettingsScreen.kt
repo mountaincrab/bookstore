@@ -1,5 +1,7 @@
 package com.mountaincrab.bookstore.ui.settings
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,12 +19,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -35,6 +42,8 @@ import com.mountaincrab.bookstore.ui.theme.AppTheme
 import com.mountaincrab.bookstore.ui.theme.LocalAppPalette
 import com.mountaincrab.bookstore.ui.theme.ThemeViewModel
 import org.koin.compose.viewmodel.koinViewModel
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 // Representative swatch colours per theme (background, accent).
 private fun swatch(theme: AppTheme): Pair<Color, Color> = when (theme) {
@@ -44,9 +53,24 @@ private fun swatch(theme: AppTheme): Pair<Color, Color> = when (theme) {
 }
 
 @Composable
-fun SettingsScreen(themeViewModel: ThemeViewModel = koinViewModel()) {
+fun SettingsScreen(
+    themeViewModel: ThemeViewModel = koinViewModel(),
+    backupViewModel: BackupViewModel = koinViewModel(),
+) {
     val palette = LocalAppPalette.current
     val current by themeViewModel.appTheme.collectAsStateWithLifecycle()
+    val backupState by backupViewModel.state.collectAsStateWithLifecycle()
+
+    // Holds a picked backup file awaiting the user's confirmation before we merge it in.
+    var pendingRestoreUri by remember { mutableStateOf<android.net.Uri?>(null) }
+
+    val backupLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri -> uri?.let { backupViewModel.export(it) } }
+
+    val restoreLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri -> pendingRestoreUri = uri }
 
     Column(
         modifier = Modifier
@@ -89,6 +113,43 @@ fun SettingsScreen(themeViewModel: ThemeViewModel = koinViewModel()) {
         }
 
         Text(
+            "BACKUP",
+            color = palette.fgMuted,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.sp,
+            modifier = Modifier.padding(top = 28.dp, bottom = 10.dp),
+        )
+        Surface(color = palette.surfaceRaised, shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, palette.cardBorder), modifier = Modifier.fillMaxWidth()) {
+            Column {
+                val working = backupState is BackupUiState.Working
+                SettingsActionRow(
+                    title = "Back up library",
+                    subtitle = "Save all your books to a .json file",
+                    enabled = !working,
+                ) {
+                    backupViewModel.clearMessage()
+                    backupLauncher.launch(defaultBackupFileName())
+                }
+                SettingsActionRow(
+                    title = "Restore from backup",
+                    subtitle = "Merge books from a .json file",
+                    enabled = !working,
+                ) {
+                    backupViewModel.clearMessage()
+                    restoreLauncher.launch(arrayOf("application/json"))
+                }
+            }
+        }
+
+        when (val s = backupState) {
+            is BackupUiState.Working -> StatusLine("Working…", palette.fgMuted)
+            is BackupUiState.Success -> StatusLine(s.message, MaterialTheme.colorScheme.primary)
+            is BackupUiState.Error -> StatusLine(s.message, MaterialTheme.colorScheme.error)
+            BackupUiState.Idle -> Unit
+        }
+
+        Text(
             "ABOUT",
             color = palette.fgMuted,
             fontSize = 11.sp,
@@ -115,4 +176,57 @@ fun SettingsScreen(themeViewModel: ThemeViewModel = koinViewModel()) {
             }
         }
     }
+
+    pendingRestoreUri?.let { uri ->
+        AlertDialog(
+            onDismissRequest = { pendingRestoreUri = null },
+            title = { Text("Restore backup?") },
+            text = {
+                Text(
+                    "Books from this file will be merged into your library. " +
+                        "Existing books with the same id are updated; nothing is deleted.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingRestoreUri = null
+                    backupViewModel.import(uri)
+                }) { Text("Restore") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingRestoreUri = null }) { Text("Cancel") }
+            },
+        )
+    }
+}
+
+@Composable
+private fun SettingsActionRow(
+    title: String,
+    subtitle: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            Text(subtitle, color = LocalAppPalette.current.fgMuted, fontSize = 12.sp)
+        }
+    }
+}
+
+@Composable
+private fun StatusLine(message: String, color: Color) {
+    Text(message, color = color, fontSize = 13.sp, modifier = Modifier.padding(top = 10.dp))
+}
+
+private fun defaultBackupFileName(): String {
+    val date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"))
+    return "bookshelf-backup-$date.json"
 }
