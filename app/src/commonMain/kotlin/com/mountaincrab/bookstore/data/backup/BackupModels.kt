@@ -1,7 +1,6 @@
 package com.mountaincrab.bookstore.data.backup
 
 import com.mountaincrab.bookstore.data.local.entity.BookEntity
-import com.mountaincrab.bookstore.data.model.BookSource
 import com.mountaincrab.bookstore.data.model.SyncStatus
 import com.mountaincrab.bookstore.util.currentTimeMillis
 import kotlinx.serialization.Serializable
@@ -33,10 +32,9 @@ data class BackupBook(
     val title: String,
     val author: String,
     val genres: List<String> = emptyList(),
-    val read: Boolean = false,
-    val source: String = BookSource.BOUGHT.name,
     val notes: String = "",
     val readAt: Long? = null,
+    val isbn: String? = null,
     val createdAt: Long = 0L,
     val updatedAt: Long = 0L,
 )
@@ -52,10 +50,9 @@ fun BookEntity.toBackup(): BackupBook = BackupBook(
     title = title,
     author = author,
     genres = genres,
-    read = read,
-    source = source.name,
     notes = notes,
     readAt = readAt,
+    isbn = isbn,
     createdAt = createdAt,
     updatedAt = updatedAt,
 )
@@ -70,10 +67,9 @@ fun BackupBook.toEntity(): BookEntity = BookEntity(
     title = title,
     author = author,
     genres = genres,
-    read = read,
-    source = BookSource.fromName(source),
     notes = notes,
     readAt = readAt,
+    isbn = isbn,
     createdAt = if (createdAt > 0L) createdAt else currentTimeMillis(),
     updatedAt = if (updatedAt > 0L) updatedAt else currentTimeMillis(),
     syncStatus = SyncStatus.PENDING,
